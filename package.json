@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "up": "node scripts/git-up.mjs",
+    "down": "node scripts/git-down.mjs"
   },
   "dependencies": {
     "@elemaudio/core": "4.0.3",
