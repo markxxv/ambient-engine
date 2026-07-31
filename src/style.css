@@ -129,7 +129,7 @@ button { color: inherit; }
   width: 112px;
   height: 112px;
   border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, #f6f7f8, #abb2c0 22%, #252a34 57%, #0d0f14 72%);
+  background: #fff;
   box-shadow: 0 0 44px rgba(187,197,216,.22), inset -14px -18px 32px rgba(0,0,0,.7);
   position: relative;
   z-index: 2;
