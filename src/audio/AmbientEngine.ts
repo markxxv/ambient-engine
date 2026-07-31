@@ -11,6 +11,7 @@ import type {
 } from './types';
 
 const POLYPHONY = 12;
+const LOWEST_NOTE = 48; // C3: keep the generative pad out of the heavy low register.
 
 function midiToFrequency(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12);
@@ -57,7 +58,7 @@ export class AmbientEngine {
   private preset: AmbientPreset = { ...AMBIENT_PRESETS[1] };
   private mix: MixState = {
     air: 1,
-    music: 0.46,
+    music: 0.32,
   };
   private peak = 0;
   private listeners = new Set<SnapshotListener>();
@@ -103,16 +104,16 @@ export class AmbientEngine {
     return () => this.listeners.delete(listener);
   }
 
-  noteOn(midi: number, velocity = 0.46): void {
+  noteOn(midi: number, velocity = 0.32): void {
     if (!this.initialized) return;
 
-    const normalizedMidi = Math.max(36, Math.min(88, Math.round(midi)));
+    const normalizedMidi = Math.max(LOWEST_NOTE, Math.min(88, Math.round(midi)));
     const existing = this.voices.find((voice) => voice.gate > 0 && voice.midi === normalizedMidi);
     const voice = existing ?? this.findVoiceForReuse();
 
     voice.midi = normalizedMidi;
     voice.frequency = midiToFrequency(normalizedMidi);
-    voice.velocity = Math.max(0.2, Math.min(0.62, velocity));
+    voice.velocity = Math.max(0.14, Math.min(0.48, velocity));
     voice.gate = 1;
     voice.startedAt = performance.now();
 
@@ -135,15 +136,15 @@ export class AmbientEngine {
     }
   }
 
-  playNotes(notes: number[], velocity = 0.44): void {
+  playNotes(notes: number[], velocity = 0.3): void {
     notes.slice(0, POLYPHONY).forEach((note, index) => {
-      window.setTimeout(() => this.noteOn(note, velocity - index * 0.008), index * 72);
+      window.setTimeout(() => this.noteOn(note, velocity - index * 0.005), index * 92);
     });
   }
 
   releaseNotes(notes: number[]): void {
     notes.forEach((note, index) => {
-      window.setTimeout(() => this.noteOff(note), index * 34);
+      window.setTimeout(() => this.noteOff(note), index * 42);
     });
   }
 

@@ -6,19 +6,20 @@ interface SequenceStep {
   velocity: number;
 }
 
-const CROSSFADE_MS = 1_600;
+const CROSSFADE_MS = 2_200;
 
-// Original slow modal progression: D minor / F major colours with shared tones.
-// Common notes remain held while only the changing voices fade in and out.
+// Bright, slow I–V–vi–IV movement in C major: C – G – Am – F.
+// Every voicing begins at C3 or above. The first cycle keeps E4 as a calm
+// common tone; the second introduces a small, gentle upper-line variation.
 const SEQUENCE: SequenceStep[] = [
-  { notes: [38, 45, 48, 52, 53, 57], holdMs: 10_800, velocity: 0.44 },
-  { notes: [38, 46, 53, 57, 60, 62], holdMs: 11_600, velocity: 0.42 },
-  { notes: [41, 48, 52, 55, 57, 60], holdMs: 10_400, velocity: 0.43 },
-  { notes: [36, 43, 45, 50, 52, 57], holdMs: 11_800, velocity: 0.41 },
-  { notes: [43, 50, 53, 57, 58, 62], holdMs: 10_600, velocity: 0.43 },
-  { notes: [41, 45, 48, 52, 53, 57], holdMs: 11_400, velocity: 0.42 },
-  { notes: [46, 53, 57, 60, 62, 65], holdMs: 10_900, velocity: 0.41 },
-  { notes: [45, 52, 55, 59, 62, 64], holdMs: 12_200, velocity: 0.4 },
+  { notes: [48, 55, 59, 62, 64], holdMs: 11_800, velocity: 0.3 }, // Cmaj9
+  { notes: [50, 55, 59, 62, 64], holdMs: 11_200, velocity: 0.29 }, // G6(add9)/D
+  { notes: [52, 57, 59, 60, 64], holdMs: 12_000, velocity: 0.28 }, // Am9/E
+  { notes: [53, 57, 60, 62, 64], holdMs: 11_600, velocity: 0.29 }, // Fmaj7(add9)
+  { notes: [48, 55, 59, 62, 67], holdMs: 11_400, velocity: 0.29 }, // Cmaj9
+  { notes: [50, 55, 59, 64, 69], holdMs: 11_900, velocity: 0.28 }, // G6/9/D
+  { notes: [52, 57, 60, 62, 67], holdMs: 11_500, velocity: 0.28 }, // Am7(add11)/E
+  { notes: [53, 57, 60, 64, 67], holdMs: 12_200, velocity: 0.29 }, // Fmaj9
 ];
 
 export class TestSequencer {
@@ -58,7 +59,6 @@ export class TestSequencer {
     const enteringNotes = step.notes.filter((note) => !this.activeNotes.includes(note));
     const leavingNotes = this.activeNotes.filter((note) => !step.notes.includes(note));
 
-    // Bring the new harmony in first, then let departing tones dissolve behind it.
     this.engine.playNotes(enteringNotes, step.velocity);
 
     if (leavingNotes.length > 0) {
