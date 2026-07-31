@@ -113,6 +113,10 @@ export class AmbientEngine {
     this.emitSnapshot();
   }
 
+  async suspend(): Promise<void> {
+    if (this.context?.state === 'running') await this.context.suspend();
+  }
+
   subscribe(listener: SnapshotListener): () => void {
     this.listeners.add(listener);
     listener(this.snapshot());
