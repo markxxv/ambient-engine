@@ -6,9 +6,7 @@ import { TestSequencer } from './test-generator/TestSequencer';
 
 const engine = new AmbientEngine();
 const sequencer = new TestSequencer(engine);
-const app = document.querySelector<HTMLElement>('#app');
-
-if (!app) throw new Error('Missing #app root element');
+const app = document.querySelector<HTMLElement>('#app')!;
 
 const mixControls: Array<{
   id: AmbientParameter;
@@ -193,14 +191,9 @@ app.innerHTML = `
   </section>
 `;
 
-const playButton = app.querySelector<HTMLButtonElement>('[data-play]');
-const playCaption = app.querySelector<HTMLElement>('[data-play-caption]');
-const statusElement = app.querySelector<HTMLElement>('[data-status]');
-
-if (!playButton || !playCaption || !statusElement) {
-  throw new Error('Missing playback controls');
-}
-
+const playButton = app.querySelector<HTMLButtonElement>('[data-play]')!;
+const playCaption = app.querySelector<HTMLElement>('[data-play-caption]')!;
+const statusElement = app.querySelector<HTMLElement>('[data-status]')!;
 let isPlaying = false;
 let isChangingState = false;
 
