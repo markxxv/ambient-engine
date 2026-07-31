@@ -14,6 +14,7 @@ interface GlobalControls {
   release: ElemNode;
   air: ElemNode;
   music: ElemNode;
+  keys: ElemNode;
 }
 
 function keyedValue(key: string, value: number): ElemNode {
@@ -30,12 +31,12 @@ function sum(nodes: ElemNode[]): ElemNode {
   return el.add(...nodes);
 }
 
-function renderVoice(
+function renderPadVoice(
   voice: VoiceState,
   preset: AmbientPreset,
   controls: GlobalControls,
 ): [ElemNode, ElemNode] {
-  const prefix = `voice:${voice.slot}`;
+  const prefix = `pad:${voice.slot}`;
   const gate = keyedValue(`${prefix}:gate`, voice.gate);
   const frequency = smoothValue(`${prefix}:frequency`, voice.frequency, 0.16);
   const velocity = smoothValue(`${prefix}:velocity`, voice.velocity, 0.24);
@@ -44,8 +45,6 @@ function renderVoice(
   const releasePole = el.tau2pole(el.mul(1 / 6.9, controls.release));
   const envelope = el.smooth(el.select(gate, attackPole, releasePole), gate);
 
-  // Extremely restrained pitch movement: enough life to avoid a static sine,
-  // but too little to produce an obvious chorus or heavy beating.
   const driftDepth = el.mul(preset.detune, controls.motion, 0.18);
   const driftA = el.add(1, el.mul(driftDepth, el.cycle(0.013 + voice.slot * 0.0009)));
   const driftB = el.add(1, el.mul(driftDepth, el.cycle(0.019 + voice.slot * 0.0007)));
@@ -56,8 +55,6 @@ function renderVoice(
   const octave = el.cycle(el.mul(frequency, 2.001, driftB));
   const thirdHarmonic = el.cycle(el.mul(frequency, 3.002, driftA));
 
-  // No sub oscillator. The voice is mainly a clean sine core with only a
-  // trace of stereo width and upper harmonics.
   const leftOsc = el.add(
     el.mul(0.7, center),
     el.mul(0.18, lowerSide),
@@ -88,8 +85,67 @@ function renderVoice(
   return [el.mul(amplitude, lightLeft), el.mul(amplitude, lightRight)];
 }
 
-// This is intentionally kept close to the previous processing path because
-// the existing stereo air texture is already approved.
+function renderKeyVoice(voice: VoiceState): [ElemNode, ElemNode] {
+  const prefix = `keys:${voice.slot}`;
+  const gate = keyedValue(`${prefix}:gate`, voice.gate);
+  const frequency = smoothValue(`${prefix}:frequency`, voice.frequency, 0.012);
+  const velocity = smoothValue(`${prefix}:velocity`, voice.velocity, 0.035);
+
+  const bodyEnvelope = el.smooth(
+    el.select(gate, el.tau2pole(0.006), el.tau2pole(2.7)),
+    gate,
+  );
+  const shimmerEnvelope = el.smooth(
+    el.select(gate, el.tau2pole(0.003), el.tau2pole(1.15)),
+    gate,
+  );
+
+  const fundamental = el.cycle(frequency);
+  const octaveLeft = el.cycle(el.mul(frequency, 2.003));
+  const octaveRight = el.cycle(el.mul(frequency, 1.997));
+  const glassThird = el.cycle(el.mul(frequency, 3.012));
+  const glassFourth = el.cycle(el.mul(frequency, 4.027));
+  const highChime = el.cycle(el.mul(frequency, 6.041));
+
+  const leftTone = el.add(
+    el.mul(0.7, bodyEnvelope, fundamental),
+    el.mul(0.2, bodyEnvelope, octaveLeft),
+    el.mul(0.07, shimmerEnvelope, glassThird),
+    el.mul(0.025, shimmerEnvelope, glassFourth),
+    el.mul(0.005, shimmerEnvelope, highChime),
+  );
+  const rightTone = el.add(
+    el.mul(0.7, bodyEnvelope, fundamental),
+    el.mul(0.2, bodyEnvelope, octaveRight),
+    el.mul(0.07, shimmerEnvelope, glassThird),
+    el.mul(0.025, shimmerEnvelope, glassFourth),
+    el.mul(0.005, shimmerEnvelope, highChime),
+  );
+
+  const softenedLeft = el.svf(
+    { mode: 'lowpass' },
+    5_400,
+    0.34,
+    el.svf({ mode: 'highpass' }, 180, 0.42, leftTone),
+  );
+  const softenedRight = el.svf(
+    { mode: 'lowpass' },
+    5_200,
+    0.34,
+    el.svf({ mode: 'highpass' }, 190, 0.42, rightTone),
+  );
+
+  const pan = (voice.slot / 5) * 1.4 - 0.7;
+  const leftGain = Math.sqrt((1 - pan) * 0.5);
+  const rightGain = Math.sqrt((1 + pan) * 0.5);
+  const amplitude = el.mul(0.042, velocity);
+
+  return [
+    el.mul(amplitude, leftGain, softenedLeft),
+    el.mul(amplitude, rightGain, softenedRight),
+  ];
+}
+
 function airEffects(
   input: ElemNode,
   side: 'left' | 'right',
@@ -131,8 +187,6 @@ function musicEffects(
   const cutoff = el.add(1_050, el.mul(2_700, controls.brightness, controls.brightness));
   const filtered = el.svf({ mode: 'lowpass' }, cutoff, 0.4, highPassed);
 
-  // Barely touch the transient density; the old saturation made the pad feel
-  // close and insistent, so this stage remains almost linear.
   const drive = el.add(0.88, el.mul(0.32, controls.warmth));
   const softened = el.mul(0.94, el.tanh(el.mul(drive, filtered)));
 
@@ -159,8 +213,37 @@ function musicEffects(
   );
 }
 
+function keysEffects(
+  input: ElemNode,
+  side: 'left' | 'right',
+  controls: GlobalControls,
+): ElemNode {
+  const filtered = el.svf(
+    { mode: 'lowpass' },
+    el.add(3_800, el.mul(2_200, controls.brightness)),
+    0.36,
+    input,
+  );
+  const delayMs = side === 'left' ? 337 : 463;
+  const echo = el.delay(
+    { size: MAX_DELAY_SAMPLES },
+    el.ms2samps(delayMs),
+    0.18,
+    filtered,
+  );
+  const diffused = el.add(el.mul(0.9, filtered), el.mul(0.13, echo));
+  const wet = el.convolve({ path: side === 'left' ? '/ir/soft-left' : '/ir/soft-right' }, diffused);
+  const wetAmount = el.add(0.62, el.mul(0.24, controls.space));
+
+  return el.add(
+    el.mul(el.sub(1, wetAmount), diffused),
+    el.mul(wetAmount, wet),
+  );
+}
+
 export function buildSynthGraph(
-  voices: VoiceState[],
+  padVoices: VoiceState[],
+  keyVoices: VoiceState[],
   preset: AmbientPreset,
   mix: MixState,
 ): [ElemNode, ElemNode] {
@@ -173,11 +256,16 @@ export function buildSynthGraph(
     release: smoothValue('global:release', preset.release, 3.8),
     air: smoothValue('mix:air', mix.air, 1.2),
     music: smoothValue('mix:music', mix.music, 1.8),
+    keys: smoothValue('mix:keys', mix.keys, 1.6),
   };
 
-  const rendered = voices.map((voice) => renderVoice(voice, preset, controls));
-  const leftVoices = sum(rendered.map(([left]) => left));
-  const rightVoices = sum(rendered.map(([, right]) => right));
+  const renderedPad = padVoices.map((voice) => renderPadVoice(voice, preset, controls));
+  const leftPad = sum(renderedPad.map(([left]) => left));
+  const rightPad = sum(renderedPad.map(([, right]) => right));
+
+  const renderedKeys = keyVoices.map((voice) => renderKeyVoice(voice));
+  const leftKeys = sum(renderedKeys.map(([left]) => left));
+  const rightKeys = sum(renderedKeys.map(([, right]) => right));
 
   const airAmount = el.add(0.004, el.mul(0.008, controls.brightness));
   const airLeft = el.mul(
@@ -193,14 +281,15 @@ export function buildSynthGraph(
 
   const leftAirBus = airEffects(airLeft, 'left', controls);
   const rightAirBus = airEffects(airRight, 'right', controls);
-  const leftMusicBus = musicEffects(el.mul(controls.music, leftVoices), 'left', controls);
-  const rightMusicBus = musicEffects(el.mul(controls.music, rightVoices), 'right', controls);
+  const leftMusicBus = musicEffects(el.mul(controls.music, leftPad), 'left', controls);
+  const rightMusicBus = musicEffects(el.mul(controls.music, rightPad), 'right', controls);
+  const leftKeysBus = keysEffects(el.mul(controls.keys, leftKeys), 'left', controls);
+  const rightKeysBus = keysEffects(el.mul(controls.keys, rightKeys), 'right', controls);
 
-  const leftBus = el.add(leftAirBus, leftMusicBus);
-  const rightBus = el.add(rightAirBus, rightMusicBus);
+  const leftBus = el.add(leftAirBus, leftMusicBus, leftKeysBus);
+  const rightBus = el.add(rightAirBus, rightMusicBus, rightKeysBus);
   const stereoSidechain = el.add(el.mul(0.5, leftBus), el.mul(0.5, rightBus));
 
-  // Gentle safety compression only. It should never pull the pad forward.
   const leftCompressed = el.skcompress(45, 900, -10, 1.7, 6, stereoSidechain, leftBus);
   const rightCompressed = el.skcompress(45, 900, -10, 1.7, 6, stereoSidechain, rightBus);
 
