@@ -77,14 +77,10 @@ const visualSvg = `
     </g>
 
     <g class="visual-orbits" fill="none" stroke="#fff" stroke-linecap="round" aria-hidden="true">
-      <circle cx="500" cy="500" r="238" stroke-opacity=".19" stroke-dasharray="1 10"/>
-      <circle cx="500" cy="500" r="304" stroke-opacity=".14" stroke-dasharray="2 13"/>
-      <circle cx="500" cy="500" r="374" stroke-opacity=".1" stroke-dasharray="1 15"/>
-      <circle cx="500" cy="500" r="443" stroke-opacity=".075" stroke-dasharray="2 17"/>
-      <path d="M246 291A338 338 0 0 1 500 162" stroke-opacity=".19"/>
-      <path d="M705 231A348 348 0 0 1 842 500" stroke-opacity=".16"/>
-      <path d="M755 720A358 358 0 0 1 503 846" stroke-opacity=".15"/>
-      <path d="M220 699A370 370 0 0 0 414 847" stroke-opacity=".13"/>
+      <circle cx="500" cy="500" r="238" stroke-opacity=".2" stroke-dasharray="1 10"/>
+      <circle cx="500" cy="500" r="304" stroke-opacity=".16" stroke-dasharray="2 13"/>
+      <circle cx="500" cy="500" r="374" stroke-opacity=".12" stroke-dasharray="1 15"/>
+      <circle cx="500" cy="500" r="443" stroke-opacity=".1" stroke-dasharray="2 17"/>
     </g>
 
     <g aria-hidden="true">
@@ -115,9 +111,27 @@ app.innerHTML = `
   <section class="app-shell">
     <header class="topline">
       <div class="identity">
-        <span class="identity-index">AE / 01</span>
+        <svg viewBox="267.255 266.478 462.431 466.644" width="70" height="70" style="display:inline-block;" xmlns="http://www.w3.org/2000/svg">
+          <defs/>
+          <linearGradient id="b" gradientUnits="userSpaceOnUse" x1="330" x2="670" y1="670" y2="330">
+            <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+            <stop offset="0.22" stop-color="#fff" stop-opacity=".18"/>
+            <stop offset="0.42" stop-color="#fff" stop-opacity=".88"/>
+            <stop offset="0.58" stop-color="#fff" stop-opacity=".88"/>
+            <stop offset="0.78" stop-color="#fff" stop-opacity=".18"/>
+            <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="c" height="220%" width="220%" x="-60%" y="-60%">
+            <feGaussianBlur stdDeviation="18"/>
+          </filter>
+          <path d="m330 670 340-340" stroke="url(#b)" stroke-linecap="round" stroke-width="8"/>
+          <g fill="none">
+            <circle cx="500" cy="500" r="86" stroke="#fff" stroke-width="7"/>
+          </g>
+        </svg>
+      
         <div>
-          <h1>Ambient Engine</h1>
+          <h1>Notiqx Player</h1>
           <p>Live generative sound</p>
         </div>
       </div>
