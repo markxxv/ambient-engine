@@ -1,5 +1,5 @@
 import { el } from '@elemaudio/core';
-import type { AmbientPreset, VoiceState } from './types';
+import type { AmbientPreset, MixState, VoiceState } from './types';
 
 const MAX_DELAY_SAMPLES = 96_000;
 
@@ -12,6 +12,8 @@ interface GlobalControls {
   space: ElemNode;
   attack: ElemNode;
   release: ElemNode;
+  air: ElemNode;
+  music: ElemNode;
 }
 
 function keyedValue(key: string, value: number): ElemNode {
@@ -35,38 +37,55 @@ function renderVoice(
 ): [ElemNode, ElemNode] {
   const prefix = `voice:${voice.slot}`;
   const gate = keyedValue(`${prefix}:gate`, voice.gate);
-  const frequency = smoothValue(`${prefix}:frequency`, voice.frequency, 0.045);
-  const velocity = smoothValue(`${prefix}:velocity`, voice.velocity, 0.08);
+  const frequency = smoothValue(`${prefix}:frequency`, voice.frequency, 0.11);
+  const velocity = smoothValue(`${prefix}:velocity`, voice.velocity, 0.18);
 
   const attackPole = el.tau2pole(el.mul(1 / 6.9, controls.attack));
   const releasePole = el.tau2pole(el.mul(1 / 6.9, controls.release));
   const envelope = el.smooth(el.select(gate, attackPole, releasePole), gate);
 
-  const driftDepth = el.mul(preset.detune, controls.motion);
-  const driftA = el.add(1, el.mul(driftDepth, el.cycle(0.031 + voice.slot * 0.0021)));
-  const driftB = el.add(1, el.mul(driftDepth, el.cycle(0.043 + voice.slot * 0.0017)));
+  const driftDepth = el.mul(preset.detune, controls.motion, 0.42);
+  const driftA = el.add(1, el.mul(driftDepth, el.cycle(0.018 + voice.slot * 0.0013)));
+  const driftB = el.add(1, el.mul(driftDepth, el.cycle(0.024 + voice.slot * 0.0011)));
 
-  const fundamental = el.cycle(el.mul(frequency, driftA));
-  const lower = el.cycle(el.mul(frequency, 0.9972, driftB));
-  const upper = el.cycle(el.mul(frequency, 1.0028, driftA));
-  const octave = el.cycle(el.mul(frequency, 2.001));
+  const center = el.cycle(el.mul(frequency, driftA));
+  const lowerSide = el.cycle(el.mul(frequency, 1 - preset.detune * 0.62, driftB));
+  const upperSide = el.cycle(el.mul(frequency, 1 + preset.detune * 0.62, driftA));
+  const sub = el.cycle(el.mul(frequency, 0.5, driftB));
+  const octave = el.cycle(el.mul(frequency, 2.001, driftA));
+  const thirdHarmonic = el.cycle(el.mul(frequency, 3.002, driftB));
+  const fifthHarmonic = el.cycle(el.mul(frequency, 5.003, driftA));
 
   const leftOsc = el.add(
-    el.mul(0.46, fundamental),
-    el.mul(0.28, lower),
-    el.mul(0.16, upper),
-    el.mul(0.1, octave),
+    el.mul(0.48, center),
+    el.mul(0.19, lowerSide),
+    el.mul(0.15, sub),
+    el.mul(0.11, octave),
+    el.mul(0.05, thirdHarmonic),
+    el.mul(0.02, fifthHarmonic),
   );
 
   const rightOsc = el.add(
-    el.mul(0.46, fundamental),
-    el.mul(0.16, lower),
-    el.mul(0.28, upper),
-    el.mul(0.1, octave),
+    el.mul(0.48, center),
+    el.mul(0.19, upperSide),
+    el.mul(0.15, sub),
+    el.mul(0.11, octave),
+    el.mul(0.05, thirdHarmonic),
+    el.mul(0.02, fifthHarmonic),
   );
 
-  const amplitude = el.mul(0.115, velocity, envelope);
-  return [el.mul(amplitude, leftOsc), el.mul(amplitude, rightOsc)];
+  const voiceCutoff = el.add(
+    480,
+    el.mul(1_750, controls.brightness, controls.brightness),
+    el.mul(180, velocity),
+  );
+  const softLeft = el.svf({ mode: 'lowpass' }, voiceCutoff, 0.42, leftOsc);
+  const softRight = el.svf({ mode: 'lowpass' }, voiceCutoff, 0.42, rightOsc);
+
+  const breath = el.add(0.97, el.mul(0.03, el.cycle(0.026 + voice.slot * 0.0017)));
+  const amplitude = el.mul(0.052, velocity, envelope, breath);
+
+  return [el.mul(amplitude, softLeft), el.mul(amplitude, softRight)];
 }
 
 function channelEffects(
@@ -104,26 +123,40 @@ function channelEffects(
 export function buildSynthGraph(
   voices: VoiceState[],
   preset: AmbientPreset,
+  mix: MixState,
 ): [ElemNode, ElemNode] {
   const controls: GlobalControls = {
-    brightness: smoothValue('global:brightness', preset.brightness, 1.15),
-    warmth: smoothValue('global:warmth', preset.warmth, 1.4),
-    motion: smoothValue('global:motion', preset.motion, 1.8),
-    space: smoothValue('global:space', preset.space, 2.6),
-    attack: smoothValue('global:attack', preset.attack, 2.4),
-    release: smoothValue('global:release', preset.release, 3.2),
+    brightness: smoothValue('global:brightness', preset.brightness, 1.4),
+    warmth: smoothValue('global:warmth', preset.warmth, 1.8),
+    motion: smoothValue('global:motion', preset.motion, 2.4),
+    space: smoothValue('global:space', preset.space, 3.2),
+    attack: smoothValue('global:attack', preset.attack, 2.8),
+    release: smoothValue('global:release', preset.release, 3.8),
+    air: smoothValue('mix:air', mix.air, 1.2),
+    music: smoothValue('mix:music', mix.music, 1.4),
   };
 
   const rendered = voices.map((voice) => renderVoice(voice, preset, controls));
   const leftVoices = sum(rendered.map(([left]) => left));
   const rightVoices = sum(rendered.map(([, right]) => right));
 
+  // Keep the original air layer intact; only its independent level is new.
   const airAmount = el.add(0.004, el.mul(0.008, controls.brightness));
-  const airLeft = el.mul(airAmount, el.lowpass(6_500, 0.5, el.pinknoise({ seed: 31 })));
-  const airRight = el.mul(airAmount, el.lowpass(6_900, 0.5, el.pinknoise({ seed: 47 })));
+  const airLeft = el.mul(
+    controls.air,
+    airAmount,
+    el.lowpass(6_500, 0.5, el.pinknoise({ seed: 31 })),
+  );
+  const airRight = el.mul(
+    controls.air,
+    airAmount,
+    el.lowpass(6_900, 0.5, el.pinknoise({ seed: 47 })),
+  );
 
-  const leftBus = channelEffects(el.add(leftVoices, airLeft), 'left', controls);
-  const rightBus = channelEffects(el.add(rightVoices, airRight), 'right', controls);
+  const leftInput = el.add(el.mul(controls.music, leftVoices), airLeft);
+  const rightInput = el.add(el.mul(controls.music, rightVoices), airRight);
+  const leftBus = channelEffects(leftInput, 'left', controls);
+  const rightBus = channelEffects(rightInput, 'right', controls);
 
   const stereoSidechain = el.add(el.mul(0.5, leftBus), el.mul(0.5, rightBus));
   const leftCompressed = el.skcompress(28, 650, -18, 2.4, 9, stereoSidechain, leftBus);

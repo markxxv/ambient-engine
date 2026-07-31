@@ -13,6 +13,14 @@ const app = appElement;
 
 const keyboardNotes = [48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67];
 const noteNames = ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F4', 'G4'];
+const controlParameters: Array<{ id: AmbientParameter; label: string }> = [
+  { id: 'air', label: 'Air' },
+  { id: 'music', label: 'Music' },
+  { id: 'brightness', label: 'Brightness' },
+  { id: 'warmth', label: 'Warmth' },
+  { id: 'motion', label: 'Motion' },
+  { id: 'space', label: 'Space' },
+];
 
 app.innerHTML = `
   <section class="shell">
@@ -34,9 +42,9 @@ app.innerHTML = `
         <div class="orb-core"></div>
       </div>
       <div class="hero-copy">
-        <p class="eyebrow">Prototype 0.1</p>
-        <h2>A soft instrument built to survive changing input.</h2>
-        <p>Eight voices, slow envelopes, controlled brightness and continuously diffused space.</p>
+        <p class="eyebrow">Prototype 0.2</p>
+        <h2>A softer polyphonic pad with a separate atmosphere layer.</h2>
+        <p>Twelve voices, slow shared harmonies, independent Air and Music levels and continuously diffused space.</p>
         <div class="primary-actions">
           <button class="button button-primary" data-start>Start audio</button>
           <button class="button" data-sequence disabled>Play atmosphere</button>
@@ -48,7 +56,7 @@ app.innerHTML = `
       <article class="panel presets-panel">
         <div class="panel-heading">
           <div><span>01</span><h3>Character</h3></div>
-          <p>Preset changes morph continuously.</p>
+          <p>Preset changes morph continuously without changing the mix.</p>
         </div>
         <div class="preset-grid">
           ${AMBIENT_PRESETS.map((preset, index) => `
@@ -64,13 +72,13 @@ app.innerHTML = `
       <article class="panel controls-panel">
         <div class="panel-heading">
           <div><span>02</span><h3>Atmosphere</h3></div>
-          <p>Every value is smoothed inside the audio graph.</p>
+          <p>Air and music are independent; every transition is smoothed.</p>
         </div>
         <div class="controls">
-          ${(['brightness', 'warmth', 'motion', 'space'] as AmbientParameter[]).map((parameter) => `
+          ${controlParameters.map((parameter) => `
             <label class="control">
-              <span><b>${parameter}</b><output data-output="${parameter}">0</output></span>
-              <input data-parameter="${parameter}" type="range" min="0" max="1" step="0.01" value="0.5" disabled />
+              <span><b>${parameter.label}</b><output data-output="${parameter.id}">0</output></span>
+              <input data-parameter="${parameter.id}" type="range" min="0" max="1" step="0.01" value="0.5" disabled />
             </label>
           `).join('')}
         </div>
@@ -79,7 +87,7 @@ app.innerHTML = `
       <article class="panel keyboard-panel">
         <div class="panel-heading">
           <div><span>03</span><h3>Input test</h3></div>
-          <p>Touch individual notes or let the sequence breathe.</p>
+          <p>Touch individual notes or let the new modal progression breathe.</p>
         </div>
         <div class="keyboard">
           ${keyboardNotes.map((midi, index) => `
@@ -92,10 +100,10 @@ app.innerHTML = `
     </section>
 
     <footer class="metrics">
-      <div><span>Voices</span><strong data-voices>0 / 8</strong></div>
+      <div><span>Voices</span><strong data-voices>0 / 12</strong></div>
       <div><span>Peak</span><strong data-peak>−∞ dB</strong></div>
       <div><span>Engine</span><strong>Elementary Audio</strong></div>
-      <div><span>Stage</span><strong>Playable baseline</strong></div>
+      <div><span>Stage</span><strong>Soft pad study</strong></div>
     </footer>
   </section>
 `;
@@ -125,7 +133,7 @@ function updateSnapshot(snapshot: EngineSnapshot): void {
     statusElement.classList.toggle('is-active', snapshot.initialized);
   }
 
-  if (voicesElement) voicesElement.textContent = `${snapshot.activeVoices} / 8`;
+  if (voicesElement) voicesElement.textContent = `${snapshot.activeVoices} / ${snapshot.maxVoices}`;
   if (peakElement) {
     const db = snapshot.peak > 0 ? 20 * Math.log10(snapshot.peak) : Number.NEGATIVE_INFINITY;
     peakElement.textContent = Number.isFinite(db) ? `${db.toFixed(1)} dB` : '−∞ dB';
@@ -184,7 +192,7 @@ app.querySelectorAll<HTMLButtonElement>('[data-note]').forEach((button) => {
   const midi = Number(button.dataset.note);
   const press = (): void => {
     button.classList.add('is-active');
-    engine.noteOn(midi, 0.56);
+    engine.noteOn(midi, 0.44);
   };
   const release = (): void => {
     button.classList.remove('is-active');

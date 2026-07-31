@@ -3,19 +3,29 @@ import type { AmbientEngine } from '../audio/AmbientEngine';
 interface SequenceStep {
   notes: number[];
   holdMs: number;
+  velocity: number;
 }
 
+const CROSSFADE_MS = 1_600;
+
+// Original slow modal progression: D minor / F major colours with shared tones.
+// Common notes remain held while only the changing voices fade in and out.
 const SEQUENCE: SequenceStep[] = [
-  { notes: [50, 57, 60, 64, 69], holdMs: 6_800 },
-  { notes: [46, 53, 57, 60, 65], holdMs: 7_200 },
-  { notes: [53, 57, 60, 64, 67], holdMs: 6_600 },
-  { notes: [48, 55, 57, 62, 64], holdMs: 7_400 },
+  { notes: [38, 45, 48, 52, 53, 57], holdMs: 10_800, velocity: 0.44 },
+  { notes: [38, 46, 53, 57, 60, 62], holdMs: 11_600, velocity: 0.42 },
+  { notes: [41, 48, 52, 55, 57, 60], holdMs: 10_400, velocity: 0.43 },
+  { notes: [36, 43, 45, 50, 52, 57], holdMs: 11_800, velocity: 0.41 },
+  { notes: [43, 50, 53, 57, 58, 62], holdMs: 10_600, velocity: 0.43 },
+  { notes: [41, 45, 48, 52, 53, 57], holdMs: 11_400, velocity: 0.42 },
+  { notes: [46, 53, 57, 60, 62, 65], holdMs: 10_900, velocity: 0.41 },
+  { notes: [45, 52, 55, 59, 62, 64], holdMs: 12_200, velocity: 0.4 },
 ];
 
 export class TestSequencer {
   private running = false;
   private stepIndex = 0;
   private timer: number | null = null;
+  private releaseTimer: number | null = null;
   private activeNotes: number[] = [];
 
   constructor(private readonly engine: AmbientEngine) {}
@@ -30,8 +40,10 @@ export class TestSequencer {
   stop(): void {
     this.running = false;
     if (this.timer !== null) window.clearTimeout(this.timer);
+    if (this.releaseTimer !== null) window.clearTimeout(this.releaseTimer);
     this.timer = null;
-    this.engine.releaseNotes(this.activeNotes);
+    this.releaseTimer = null;
+    this.engine.releaseAll();
     this.activeNotes = [];
   }
 
@@ -42,14 +54,21 @@ export class TestSequencer {
   private playCurrentStep(): void {
     if (!this.running) return;
 
-    if (this.activeNotes.length > 0) {
-      this.engine.releaseNotes(this.activeNotes);
+    const step = SEQUENCE[this.stepIndex];
+    const enteringNotes = step.notes.filter((note) => !this.activeNotes.includes(note));
+    const leavingNotes = this.activeNotes.filter((note) => !step.notes.includes(note));
+
+    // Bring the new harmony in first, then let departing tones dissolve behind it.
+    this.engine.playNotes(enteringNotes, step.velocity);
+
+    if (leavingNotes.length > 0) {
+      this.releaseTimer = window.setTimeout(() => {
+        this.engine.releaseNotes(leavingNotes);
+        this.releaseTimer = null;
+      }, CROSSFADE_MS);
     }
 
-    const step = SEQUENCE[this.stepIndex];
-    this.activeNotes = step.notes;
-    this.engine.playNotes(step.notes, 0.58);
-
+    this.activeNotes = [...step.notes];
     this.timer = window.setTimeout(() => {
       this.stepIndex = (this.stepIndex + 1) % SEQUENCE.length;
       this.playCurrentStep();
