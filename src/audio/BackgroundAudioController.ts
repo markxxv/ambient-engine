@@ -1,5 +1,4 @@
 import type { AmbientEngine } from './AmbientEngine';
-import type { CompositionGenerator } from '../generator/CompositionGenerator';
 
 type AudioSessionMode = 'auto' | 'ambient' | 'playback' | 'transient' | 'transient-solo' | 'play-and-record';
 
@@ -12,6 +11,10 @@ interface NavigatorWithAudioSession extends Navigator {
   audioSession?: BrowserAudioSession;
 }
 
+interface RecoverableGenerator {
+  reconcileAfterInterruption(date: Date): void;
+}
+
 const STALE_GENERATOR_MS = 30_000;
 
 export class BackgroundAudioController {
@@ -22,7 +25,7 @@ export class BackgroundAudioController {
 
   constructor(
     private readonly engine: AmbientEngine,
-    private readonly generator: CompositionGenerator,
+    private readonly generator: RecoverableGenerator,
   ) {
     this.configurePlaybackSession();
     this.bindLifecycleEvents();
