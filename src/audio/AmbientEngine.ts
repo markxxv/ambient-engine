@@ -5,11 +5,12 @@ import type {
   AmbientParameter,
   AmbientPreset,
   EngineSnapshot,
+  MixState,
   SnapshotListener,
   VoiceState,
 } from './types';
 
-const POLYPHONY = 8;
+const POLYPHONY = 12;
 
 function midiToFrequency(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12);
@@ -54,6 +55,10 @@ export class AmbientEngine {
     startedAt: 0,
   }));
   private preset: AmbientPreset = { ...AMBIENT_PRESETS[1] };
+  private mix: MixState = {
+    air: 1,
+    music: 0.46,
+  };
   private peak = 0;
   private listeners = new Set<SnapshotListener>();
   private renderQueue: Promise<void> = Promise.resolve();
@@ -98,7 +103,7 @@ export class AmbientEngine {
     return () => this.listeners.delete(listener);
   }
 
-  noteOn(midi: number, velocity = 0.58): void {
+  noteOn(midi: number, velocity = 0.46): void {
     if (!this.initialized) return;
 
     const normalizedMidi = Math.max(36, Math.min(88, Math.round(midi)));
@@ -107,7 +112,7 @@ export class AmbientEngine {
 
     voice.midi = normalizedMidi;
     voice.frequency = midiToFrequency(normalizedMidi);
-    voice.velocity = Math.max(0.25, Math.min(0.72, velocity));
+    voice.velocity = Math.max(0.2, Math.min(0.62, velocity));
     voice.gate = 1;
     voice.startedAt = performance.now();
 
@@ -130,15 +135,15 @@ export class AmbientEngine {
     }
   }
 
-  playNotes(notes: number[], velocity = 0.56): void {
+  playNotes(notes: number[], velocity = 0.44): void {
     notes.slice(0, POLYPHONY).forEach((note, index) => {
-      window.setTimeout(() => this.noteOn(note, velocity - index * 0.012), index * 32);
+      window.setTimeout(() => this.noteOn(note, velocity - index * 0.008), index * 72);
     });
   }
 
   releaseNotes(notes: number[]): void {
     notes.forEach((note, index) => {
-      window.setTimeout(() => this.noteOff(note), index * 22);
+      window.setTimeout(() => this.noteOff(note), index * 34);
     });
   }
 
@@ -157,10 +162,20 @@ export class AmbientEngine {
   }
 
   setParameter(parameter: AmbientParameter, value: number): void {
-    this.preset = {
-      ...this.preset,
-      [parameter]: Math.max(0, Math.min(1, value)),
-    };
+    const normalizedValue = Math.max(0, Math.min(1, value));
+
+    if (parameter === 'air' || parameter === 'music') {
+      this.mix = {
+        ...this.mix,
+        [parameter]: normalizedValue,
+      };
+    } else {
+      this.preset = {
+        ...this.preset,
+        [parameter]: normalizedValue,
+      };
+    }
+
     void this.render();
     this.emitSnapshot();
   }
@@ -178,7 +193,7 @@ export class AmbientEngine {
   private render(): Promise<void> {
     this.renderQueue = this.renderQueue.then(async () => {
       if (!this.initialized) return;
-      const [left, right] = buildSynthGraph(this.voices, this.preset);
+      const [left, right] = buildSynthGraph(this.voices, this.preset, this.mix);
       await this.core.render(left, right);
     });
 
@@ -189,9 +204,12 @@ export class AmbientEngine {
     return {
       initialized: this.initialized,
       activeVoices: this.voices.filter((voice) => voice.gate > 0).length,
+      maxVoices: POLYPHONY,
       peak: this.peak,
       presetId: this.preset.id,
       parameters: {
+        air: this.mix.air,
+        music: this.mix.music,
         brightness: this.preset.brightness,
         warmth: this.preset.warmth,
         motion: this.preset.motion,
