@@ -152,7 +152,7 @@ export class TestSequencer {
     if (this.phrasePosition >= this.phraseLength || this.random() < 0.18) {
       this.phraseLength = this.randomInteger(2, 5);
       this.phrasePosition = 0;
-      if (this.random() < 0.48) this.melodyDirection *= -1;
+      if (this.random() < 0.48) this.reverseDirection();
       this.scheduleMelody(4_800 + this.random() * 8_400);
       return;
     }
@@ -172,7 +172,7 @@ export class TestSequencer {
 
     if (note >= 79) this.melodyDirection = -1;
     else if (note <= 62) this.melodyDirection = 1;
-    else if (this.random() < 0.22) this.melodyDirection *= -1;
+    else if (this.random() < 0.22) this.reverseDirection();
 
     this.scheduleMelody(1_900 + this.random() * 3_700);
   }
@@ -205,6 +205,10 @@ export class TestSequencer {
     // Occasionally choose the second-best route. This keeps the contour alive
     // without turning the melody into uncontrolled randomness.
     return ranked[this.random() < 0.2 && ranked.length > 1 ? 1 : 0].note;
+  }
+
+  private reverseDirection(): void {
+    this.melodyDirection = this.melodyDirection === 1 ? -1 : 1;
   }
 
   private random(): number {
