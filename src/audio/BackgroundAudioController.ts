@@ -1,5 +1,4 @@
 import type { AmbientEngine } from './AmbientEngine';
-import type { CompositionGenerator } from '../generator/CompositionGenerator';
 
 type AudioSessionMode = 'auto' | 'ambient' | 'playback' | 'transient' | 'transient-solo' | 'play-and-record';
 
@@ -12,6 +11,10 @@ interface NavigatorWithAudioSession extends Navigator {
   audioSession?: BrowserAudioSession;
 }
 
+interface RecoverableGenerator {
+  reconcileAfterInterruption(date: Date): void;
+}
+
 const STALE_GENERATOR_MS = 30_000;
 
 export class BackgroundAudioController {
@@ -22,7 +25,7 @@ export class BackgroundAudioController {
 
   constructor(
     private readonly engine: AmbientEngine,
-    private readonly generator: CompositionGenerator,
+    private readonly generator: RecoverableGenerator,
   ) {
     this.configurePlaybackSession();
     this.bindLifecycleEvents();
@@ -32,7 +35,11 @@ export class BackgroundAudioController {
     this.wantsPlayback = playing;
 
     if ('mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+      try {
+        navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+      } catch {
+        // Media Session is optional and must never affect audio playback.
+      }
     }
   }
 
@@ -42,15 +49,13 @@ export class BackgroundAudioController {
     this.restoring = true;
 
     try {
-      const resumed = await this.engine.resume();
-      const hiddenFor = this.hiddenAt === null ? 0 : Date.now() - this.hiddenAt;
+      await this.engine.initialize();
 
-      if (resumed || hiddenFor >= STALE_GENERATOR_MS) {
+      const hiddenFor = this.hiddenAt === null ? 0 : Date.now() - this.hiddenAt;
+      if (hiddenFor >= STALE_GENERATOR_MS) {
         this.generator.reconcileAfterInterruption(new Date());
       }
     } catch (error) {
-      // A browser may still require a new user gesture after a system-level
-      // interruption. The central play button remains available for that case.
       console.warn('Background audio could not resume automatically.', error);
     } finally {
       this.hiddenAt = null;
