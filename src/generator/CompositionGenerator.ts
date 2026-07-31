@@ -23,6 +23,7 @@ export class CompositionGenerator {
   private activeNotes: number[] = [];
   private chordTimer: number | null = null;
   private releaseTimer: number | null = null;
+  private pendingReleaseNotes: number[] = [];
   private melodyTimer: number | null = null;
   private hourTimer: number | null = null;
   private currentKeyNote = 67;
@@ -166,9 +167,12 @@ export class CompositionGenerator {
     this.engine.playNotes(enteringNotes, step.velocity);
 
     if (leavingNotes.length > 0) {
+      this.pendingReleaseNotes = [...leavingNotes];
       this.releaseTimer = window.setTimeout(() => {
-        this.engine.releaseNotes(leavingNotes);
+        const notes = [...this.pendingReleaseNotes];
+        this.pendingReleaseNotes = [];
         this.releaseTimer = null;
+        this.engine.releaseNotes(notes);
       }, this.composition.transitionMs);
     }
 
@@ -338,6 +342,12 @@ export class CompositionGenerator {
   private clearReleaseTimer(): void {
     if (this.releaseTimer !== null) window.clearTimeout(this.releaseTimer);
     this.releaseTimer = null;
+
+    if (this.pendingReleaseNotes.length > 0) {
+      const notes = [...this.pendingReleaseNotes];
+      this.pendingReleaseNotes = [];
+      this.engine.releaseNotes(notes);
+    }
   }
 
   private clearMelodyTimer(): void {
