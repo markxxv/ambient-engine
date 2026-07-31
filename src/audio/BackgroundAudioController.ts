@@ -49,8 +49,6 @@ export class BackgroundAudioController {
     this.restoring = true;
 
     try {
-      // AmbientEngine.initialize() is idempotent: after the first start it only
-      // resumes the existing AudioContext and never creates a second engine.
       await this.engine.initialize();
 
       const hiddenFor = this.hiddenAt === null ? 0 : Date.now() - this.hiddenAt;
@@ -58,8 +56,6 @@ export class BackgroundAudioController {
         this.generator.reconcileAfterInterruption(new Date());
       }
     } catch (error) {
-      // Some browser or OS interruptions still require a fresh user gesture.
-      // In that case the central play button remains the recovery path.
       console.warn('Background audio could not resume automatically.', error);
     } finally {
       this.hiddenAt = null;
