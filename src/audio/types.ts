@@ -1,4 +1,6 @@
-export type AmbientParameter = 'brightness' | 'warmth' | 'motion' | 'space';
+export type AmbientMacro = 'brightness' | 'warmth' | 'motion' | 'space';
+export type MixParameter = 'air' | 'music';
+export type AmbientParameter = AmbientMacro | MixParameter;
 
 export interface AmbientPreset {
   id: string;
@@ -13,6 +15,11 @@ export interface AmbientPreset {
   detune: number;
 }
 
+export interface MixState {
+  air: number;
+  music: number;
+}
+
 export interface VoiceState {
   slot: number;
   midi: number;
@@ -25,6 +32,7 @@ export interface VoiceState {
 export interface EngineSnapshot {
   initialized: boolean;
   activeVoices: number;
+  maxVoices: number;
   peak: number;
   presetId: string;
   parameters: Record<AmbientParameter, number>;
