@@ -16,6 +16,7 @@ const noteNames = ['C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', '
 const controlParameters: Array<{ id: AmbientParameter; label: string }> = [
   { id: 'air', label: 'Air' },
   { id: 'music', label: 'Music' },
+  { id: 'keys', label: 'Keys' },
   { id: 'brightness', label: 'Brightness' },
   { id: 'warmth', label: 'Warmth' },
   { id: 'motion', label: 'Motion' },
@@ -42,9 +43,9 @@ app.innerHTML = `
         <div class="orb-core"></div>
       </div>
       <div class="hero-copy">
-        <p class="eyebrow">Prototype 0.2</p>
-        <h2>A softer polyphonic pad with a separate atmosphere layer.</h2>
-        <p>Twelve voices, slow shared harmonies, independent Air and Music levels and continuously diffused space.</p>
+        <p class="eyebrow">Prototype 0.3</p>
+        <h2>A light ambient system with an evolving glass melody.</h2>
+        <p>Soft pad harmony, preserved Air and a sparse generative Keys layer that changes its contour and leaves room for silence.</p>
         <div class="primary-actions">
           <button class="button button-primary" data-start>Start audio</button>
           <button class="button" data-sequence disabled>Play atmosphere</button>
@@ -72,7 +73,7 @@ app.innerHTML = `
       <article class="panel controls-panel">
         <div class="panel-heading">
           <div><span>02</span><h3>Atmosphere</h3></div>
-          <p>Air and music are independent; every transition is smoothed.</p>
+          <p>Air, pad and keys are independent; every transition is smoothed.</p>
         </div>
         <div class="controls">
           ${controlParameters.map((parameter) => `
@@ -87,7 +88,7 @@ app.innerHTML = `
       <article class="panel keyboard-panel">
         <div class="panel-heading">
           <div><span>03</span><h3>Input test</h3></div>
-          <p>Touch individual notes or let the new modal progression breathe.</p>
+          <p>Touch individual pad notes or let the atmosphere evolve.</p>
         </div>
         <div class="keyboard">
           ${keyboardNotes.map((midi, index) => `
@@ -100,10 +101,10 @@ app.innerHTML = `
     </section>
 
     <footer class="metrics">
-      <div><span>Voices</span><strong data-voices>0 / 12</strong></div>
+      <div><span>Voices</span><strong data-voices>0 / 18</strong></div>
       <div><span>Peak</span><strong data-peak>−∞ dB</strong></div>
       <div><span>Engine</span><strong>Elementary Audio</strong></div>
-      <div><span>Stage</span><strong>Soft pad study</strong></div>
+      <div><span>Stage</span><strong>Generative keys study</strong></div>
     </footer>
   </section>
 `;
