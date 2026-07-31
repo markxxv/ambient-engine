@@ -32,7 +32,11 @@ export class BackgroundAudioController {
     this.wantsPlayback = playing;
 
     if ('mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+      try {
+        navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+      } catch {
+        // Media Session is optional and must never affect audio playback.
+      }
     }
   }
 
@@ -42,15 +46,17 @@ export class BackgroundAudioController {
     this.restoring = true;
 
     try {
-      const resumed = await this.engine.resume();
-      const hiddenFor = this.hiddenAt === null ? 0 : Date.now() - this.hiddenAt;
+      // AmbientEngine.initialize() is idempotent: after the first start it only
+      // resumes the existing AudioContext and never creates a second engine.
+      await this.engine.initialize();
 
-      if (resumed || hiddenFor >= STALE_GENERATOR_MS) {
+      const hiddenFor = this.hiddenAt === null ? 0 : Date.now() - this.hiddenAt;
+      if (hiddenFor >= STALE_GENERATOR_MS) {
         this.generator.reconcileAfterInterruption(new Date());
       }
     } catch (error) {
-      // A browser may still require a new user gesture after a system-level
-      // interruption. The central play button remains available for that case.
+      // Some browser or OS interruptions still require a fresh user gesture.
+      // In that case the central play button remains the recovery path.
       console.warn('Background audio could not resume automatically.', error);
     } finally {
       this.hiddenAt = null;
