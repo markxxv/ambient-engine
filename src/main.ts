@@ -158,10 +158,10 @@ app.innerHTML = `
       </section>
 
       <aside class="control-section">
-        <div class="section-heading">
+        <!--div class="section-heading">
           <span>Mix</span>
           <small>Independent layers</small>
-        </div>
+        </div-->
 
         <div class="mix-list">
           ${mixControls.map((control) => `

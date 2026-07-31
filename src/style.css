@@ -30,6 +30,7 @@ button { color: inherit; }
   padding: 30px 0 24px;
   display: grid;
   grid-template-rows: auto 1fr auto;
+  padding-top: 2px;
 }
 
 .topline,
@@ -89,14 +90,10 @@ button { color: inherit; }
   transform: translateY(-50%);
 }
 .engine-state.is-playing { color: #fff; }
-.engine-state.is-playing::before { background: #fff; border-color: #fff; }
+.engine-state.is-playing::before { background: #0ba732; border-color:#0ba732; }
 
 .instrument {
   min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(500px, 1.35fr) minmax(410px, .65fr);
-  gap: clamp(44px, 6vw, 112px);
-  align-items: center;
   padding: 20px 0 26px;
 }
 
@@ -211,7 +208,9 @@ button { color: inherit; }
 .control-section {
   width: 100%;
   max-width: 560px;
-  justify-self: end;
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: 1rem;
 }
 
 .section-heading {
@@ -332,7 +331,6 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px 
 
 @media (max-width: 1050px) {
   .app-shell { width: min(100% - 42px, 900px); }
-  .instrument { grid-template-columns: 1fr; gap: 26px; padding-top: 8px; }
   .play-visual { width: min(62vh, 620px, 100%); }
   .control-section { max-width: 760px; justify-self: center; }
   .mix-control { grid-template-columns: 58px 128px minmax(160px, 1fr) 38px; min-height: 112px; }
