@@ -1,41 +1,45 @@
 # Project State
 
 Updated: 2026-07-31
-Version: 0.1.0
+Version: 0.2.0
 
 ## Working
 
 - Vite + TypeScript project scaffold
 - Elementary Audio web renderer initialization after user gesture
 - generated stereo impulse responses loaded into the virtual file system
-- 8 reusable voices
+- 12 reusable polyphonic voices
 - note on and note off API
-- soft oscillator pad with stereo detune
+- very soft layered sine pad with quiet harmonic colour
 - independent slow attack and release
+- preserved stereo pink-noise atmosphere
+- independent Air and Music level controls
 - brightness, warmth, motion and space macros
-- three continuously morphing presets
+- three continuously morphing presets that preserve the mix
 - manual note keyboard
-- temporary repeating ambient sequence
+- slow original D-minor / F-major chillout progression
+- shared chord tones remain held during transitions
+- new tones enter before departing tones dissolve
 - output peak meter
 - responsive diagnostic interface
 
 ## Current focus
 
-Prove that the browser synth can sound pleasant enough to justify developing the generator.
+Evaluate whether the softer pad character and modal progression now feel calm, spacious and non-intrusive enough to become the musical foundation of the generator.
 
 ## Known limitations
 
-- Voice reuse chooses the oldest active voice without a dedicated pre-release phase
-- Preset attack and release values affect newly reconciled voice state but need deeper transition testing
+- The pad is still oscillator-based rather than sample, wavetable or granular based
+- Voice reuse still needs a dedicated release-state allocator for hostile high-density input
 - Convolution reverb uses generated noise impulses rather than selected studio IRs
 - No external MIDI input yet
-- No stream abstraction or equal-power stream crossfade yet
+- No formal stream abstraction or equal-power stream crossfade yet
 - No automated audio regression tests
 - Browser performance has not yet been profiled on mobile devices
 
 ## Next step
 
-Listen critically to the baseline. Adjust oscillator balance, filter range, envelope times and reverb character before adding architectural complexity.
+Listen critically to the new pad and progression. Tune Music, filter colour, harmonic balance and release length before adding more synthesis layers.
 
 ## Completion rule
 
