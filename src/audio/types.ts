@@ -1,5 +1,5 @@
 export type AmbientMacro = 'brightness' | 'warmth' | 'motion' | 'space';
-export type MixParameter = 'air' | 'music';
+export type MixParameter = 'air' | 'music' | 'keys';
 export type AmbientParameter = AmbientMacro | MixParameter;
 
 export interface AmbientPreset {
@@ -18,6 +18,7 @@ export interface AmbientPreset {
 export interface MixState {
   air: number;
   music: number;
+  keys: number;
 }
 
 export interface VoiceState {
